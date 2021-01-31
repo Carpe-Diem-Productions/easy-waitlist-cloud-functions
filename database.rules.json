@@ -5,6 +5,10 @@
         ".read": "$user_id === auth.uid", // Read access only granted to the authenticated user.
         ".write": false // Write access only via Admin SDK.
       }
+    },
+    "activation-codes": {
+      ".read": false, // Read access only via Admin SDK.
+      ".write": false // Write access only via Admin SDK.
     }
   }
 }
