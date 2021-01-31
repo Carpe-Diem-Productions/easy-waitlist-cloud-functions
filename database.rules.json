@@ -9,6 +9,12 @@
     "activation-codes": {
       ".read": false, // Read access only via Admin SDK.
       ".write": false // Write access only via Admin SDK.
+    },
+    "unverified-admins": {
+      "$user_id": {
+        ".read": "$user_id === auth.uid", // Read access only granted to the authenticated user.
+        ".write": "$user_id === auth.uid" // Write access only granted to the authenticated user.
+      }
     }
   }
 }
