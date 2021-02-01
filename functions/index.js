@@ -14,6 +14,9 @@ const { customAlphabet } = require("nanoid");
 const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const nanoid = customAlphabet(alphabet, 12);
 
+// This function detects if an activation code is deleted (in normal cases
+// consumed by client side) and automatically generates a new un-used
+// activation code, up to the <limit> number of unused activation codes
 exports.replenishActivationCodes = functions.database
   .ref("/activation-codes/{used_code}")
   .onDelete((snapshot, context) => {
@@ -64,7 +67,11 @@ exports.replenishActivationCodes = functions.database
       });
   });
 
-// On sign up.
+// This function adds custom claims to the new user account. Custom claims
+// are secure and can be verified on the client side.
+// Note: after setting a custom claim, it sets database location
+// "metadata/{user.uid}/idTokenRefreshTime". This is how the client side
+// will know that Cloud Functions has finished setting custom claims.
 exports.addClaimsToNewUsers = functions.auth.user().onCreate((user) => {
   let customClaims;
   // Check if user meets role criteria.
@@ -92,21 +99,27 @@ exports.addClaimsToNewUsers = functions.auth.user().onCreate((user) => {
   );
 
   // Set custom user claims on this newly created user.
-  return admin.auth().setCustomUserClaims(user.uid, customClaims);
-  // .then(() => {
-  //   // Update real-time database to notify client to force refresh.
-  //   const metadataRef = admin.database().ref("metadata/" + user.uid);
-  //   // Set the refresh time to the current UTC timestamp.
-  //   // This will be captured on the client to force a token refresh.
-  //   return metadataRef.set({ refreshTime: new Date().getTime() });
-  // })
-  // .catch((error) => {
-  //   console.log(error);
-  //   return error;
-  // });
+  return admin
+    .auth()
+    .setCustomUserClaims(user.uid, customClaims)
+    .then(() => {
+      // Update real-time database to notify client to force refresh.
+      const metadataRef = admin.database().ref("metadata/" + user.uid);
+      // Set the refresh time to the current UTC timestamp.
+      // This will be captured on the client to force a token refresh.
+      return metadataRef.set({ idTokenRefreshTime: new Date().getTime() });
+    })
+    .catch((error) => {
+      functions.logger.error(error);
+      return error;
+    });
 });
 
-// activate an admin user
+// This function takes in an activation code and attempts to activate
+// an unverified admin user (in ohter words, modifying their custom claims).
+// Conditions for activation:
+// 1) Code must exists under /activation-codes
+// 2) Code is reserved for a specific UID and can only activate that UID
 exports.activateAdminUser = functions.https.onCall((data, context) => {
   // activation code passed from the client.
   const suppliedCode = data.suppliedActivationCode;
@@ -124,17 +137,15 @@ exports.activateAdminUser = functions.https.onCall((data, context) => {
   }
   // Checking that the user is authenticated.
   if (!context.auth) {
-    // Throwing an HttpsError so that the client gets the error details.
     throw new functions.https.HttpsError(
       "failed-precondition",
       "The function must be called while authenticated."
     );
   }
 
-  // Saving the new message to the Realtime Database.
   const activationCodeRef = admin
     .database()
-    .ref("/activation-codes/" + suppliedCode); // Sanitize the message.
+    .ref("/activation-codes/" + suppliedCode);
 
   return activationCodeRef
     .once("value")
