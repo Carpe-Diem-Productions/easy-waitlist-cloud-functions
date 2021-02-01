@@ -6,14 +6,30 @@
         ".write": false // Write access only via Admin SDK.
       }
     },
+    // Admin side
     "activation-codes": {
       ".read": false, // Read access only via Admin SDK.
       ".write": false // Write access only via Admin SDK.
     },
     "unverified-admins": {
       "$user_id": {
-        ".read": "$user_id === auth.uid", // Read access only granted to the authenticated user.
-        ".write": "$user_id === auth.uid" // Write access only granted to the authenticated user.
+        ".read": "$user_id === auth.uid",
+        ".write": "$user_id === auth.uid"
+      }
+    },
+    // User side
+    "waitlist": {
+      ".read": false,
+      ".write": false
+    },
+    "zip": {
+      ".read": false,
+      ".write": false
+    },
+    "user": {
+      "$user_id": {
+        ".read": "$user_id === auth.uid",
+        ".write": "$user_id === auth.uid"
       }
     }
   }
