@@ -1,8 +1,8 @@
 {
   "rules": {
     "metadata": {
-      "$user_id": {
-        ".read": "$user_id === auth.uid", // Read access only granted to the authenticated user.
+      "$userId": {
+        ".read": "$userId === auth.uid", // Read access only granted to the authenticated user.
         ".write": false // Write access only via Admin SDK.
       }
     },
@@ -12,24 +12,46 @@
       ".write": false // Write access only via Admin SDK.
     },
     "unverified-admins": {
-      "$user_id": {
-        ".read": "$user_id === auth.uid",
-        ".write": "$user_id === auth.uid"
+      "$userId": {
+        ".read": "$userId === auth.uid",
+        ".write": "$userId === auth.uid"
+      }
+    },
+    "admin": {
+      "$userId": {
+        ".read": "$userId === auth.uid",
+        ".write": "$userId === auth.uid"
       }
     },
     // User side
-    "waitlist": {
-      ".read": false,
-      ".write": false
+    "waitlistKey": {
+      "$recordKey": {
+        "toUid": {
+          "$userId": {
+            ".read": "$userId === auth.uid",
+            ".write": "$userId === auth.uid"
+          }
+        }
+      }
     },
     "zip": {
-      ".read": false,
-      ".write": false
+      "$zip": {
+        "uid": {
+          "$userId": {
+            "waitlistKey": {
+              "$recordKey": {
+                ".read": "$userId === auth.uid",
+                ".write": "$userId === auth.uid"
+              }
+            }
+          }
+        }
+      }
     },
     "user": {
-      "$user_id": {
-        ".read": "$user_id === auth.uid",
-        ".write": "$user_id === auth.uid"
+      "$userId": {
+        ".read": "$userId === auth.uid",
+        ".write": "$userId === auth.uid"
       }
     }
   }
