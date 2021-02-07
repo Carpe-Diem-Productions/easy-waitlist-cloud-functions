@@ -4,6 +4,8 @@ const admin = require("firebase-admin");
 
 const VoiceResponse = require("twilio").twiml.VoiceResponse;
 
+const callFromNumber = functions.config().twilio.call_from_number;
+
 exports.userVoiceResponseHandler = functions.https.onRequest((req, res) => {
   const twiml = new VoiceResponse();
 
@@ -30,35 +32,40 @@ exports.userVoiceResponseHandler = functions.https.onRequest((req, res) => {
     twiml.redirect("/twilioConnector");
   }
 
-  // If the user entered digits, process their request
-  if (req.body.Digits) {
-    switch (req.body.Digits) {
-      case "1":
-        // TODO: Watch out for async not finishing before the call ends
-        dbListener.set("confirmed");
-        twiml.say(
-          { voice: "man" },
-          "You have confirmed. A clinic staff will reach out to you soon."
-        );
-        twiml.hangup();
-        break;
-      case "2":
-        // TODO: Watch out for async not finishing before the call ends
-        dbListener.set("cancelled");
-        twiml.say(
-          { voice: "man" },
-          "You have cancelled. We will remove your waitlist information."
-        );
-        twiml.hangup();
-        break;
-      default:
-        twiml.say("Sorry, I don't understand that choice.").pause();
-        gather();
-        break;
-    }
+  if (req.body.From !== callFromNumber) {
+    twiml.say("This number is only for notifications. Goodbye!");
+    twiml.hangup();
   } else {
-    // If no input was sent, use the <Gather> verb to collect user input
-    gather();
+    // If the user entered digits, process their request
+    if (req.body.Digits) {
+      switch (req.body.Digits) {
+        case "1":
+          // TODO: Watch out for async not finishing before the call ends
+          dbListener.set("confirmed");
+          twiml.say(
+            { voice: "man" },
+            "You have confirmed. A clinic staff will reach out to you soon."
+          );
+          twiml.hangup();
+          break;
+        case "2":
+          // TODO: Watch out for async not finishing before the call ends
+          dbListener.set("cancelled");
+          twiml.say(
+            { voice: "man" },
+            "You have cancelled. We will remove your waitlist information."
+          );
+          twiml.hangup();
+          break;
+        default:
+          twiml.say("Sorry, I don't understand that choice.").pause();
+          gather();
+          break;
+      }
+    } else {
+      // If no input was sent, use the <Gather> verb to collect user input
+      gather();
+    }
   }
 
   respond();
