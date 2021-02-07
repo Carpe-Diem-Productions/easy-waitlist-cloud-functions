@@ -43,7 +43,9 @@ async function doCallUser(phoneNumber, waitlistRecordKey) {
       from: callFromNumber,
     });
 
-    console.log(callInstance.sid);
+    functions.logger.info(
+      "Initiating calls to " + phoneNumber + " call SID: " + callInstance.sid
+    );
 
     const dbListener = admin.database().ref("/activeCalls/" + callInstance.sid);
 
