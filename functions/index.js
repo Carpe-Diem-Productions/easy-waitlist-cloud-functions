@@ -308,3 +308,8 @@ exports.getWaitlistedContacts = functions.https.onCall((data, context) => {
       throw new functions.https.HttpsError(error.code, error.message, error);
     });
 });
+
+const phoneCalls = require("./phoneCalls");
+exports.startCallingUsers = phoneCalls.startCallingUsers;
+const twilioConnector = require("./twilioConnector");
+exports.twilioConnector = twilioConnector.userVoiceResponseHandler;

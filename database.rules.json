@@ -11,6 +11,10 @@
       ".read": false, // Read access only via Admin SDK.
       ".write": false // Write access only via Admin SDK.
     },
+    "activeCalls": {
+      ".read": false,
+      ".write": false
+    },
     "unverified-admins": {
       "$userId": {
         ".read": "$userId === auth.uid",
