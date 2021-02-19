@@ -41,7 +41,13 @@ async function doCallUser(phoneNumber, waitlistRecordKey) {
         "https://us-central1-easy-waitlist.cloudfunctions.net/twilioConnector",
       to: phoneNumber,
       from: callFromNumber,
+      timeout: 30,
+      machineDetection: "Enable",
     });
+
+    if (callInstance.answered_by === null) {
+      return "declined";
+    }
 
     functions.logger.info(
       "Initiating calls to " + phoneNumber + " call SID: " + callInstance.sid
@@ -49,6 +55,7 @@ async function doCallUser(phoneNumber, waitlistRecordKey) {
 
     const dbListener = admin.database().ref("/activeCalls/" + callInstance.sid);
 
+    // TODO: give calling clinic information to the user
     await dbListener.set({
       userNumber: phoneNumber,
       waitlistKey: waitlistRecordKey,
@@ -59,7 +66,7 @@ async function doCallUser(phoneNumber, waitlistRecordKey) {
       setTimeout(() => {
         dbListener.off();
         dbListener.set(null);
-        reject(new Error("Timed out after 60 seconds"));
+        resolve("call-timed-out");
       }, 60 * 1000);
 
       dbListener.on("value", (dataSnapshot) => {
@@ -68,11 +75,11 @@ async function doCallUser(phoneNumber, waitlistRecordKey) {
           dbListener.off();
           dbListener.set(null);
           resolve("confirmed");
-        } else if (dataSnapshot.val().userInput === "cancelled") {
+        } else if (dataSnapshot.val().userInput === "declined") {
           cancelUser(waitlistRecordKey);
           dbListener.off();
           dbListener.set(null);
-          resolve("cancelled");
+          resolve("declined");
         }
       });
     });
@@ -80,7 +87,7 @@ async function doCallUser(phoneNumber, waitlistRecordKey) {
     return didUserRespond;
   } catch (error) {
     functions.logger.warn(error);
-    throw error;
+    return "declined";
   }
 }
 
@@ -92,6 +99,14 @@ exports.startCallingUsers = functions
       throw new functions.https.HttpsError(
         "unauthenticated",
         "The function must be called while authenticated."
+      );
+    }
+
+    // Checking that the user is authenticated.
+    if (!data.numSpotsToFill) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "You haven't specified numSpotsToFill."
       );
     }
 
@@ -138,6 +153,9 @@ exports.startCallingUsers = functions
           "The search result from the wailist is more than 3 hours old. Please search again."
         );
       }
+
+      // Clear cached confirmed list
+      await callListDbRef.child("cachedConfirmedList").set(null);
 
       const shuffledSearchList = shuffle(searchList.result);
 

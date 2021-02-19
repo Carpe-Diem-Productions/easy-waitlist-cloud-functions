@@ -24,7 +24,9 @@ exports.userVoiceResponseHandler = functions.https.onRequest((req, res) => {
     const gatherNode = twiml.gather({ timeout: 10, numDigits: 1 });
     gatherNode.say(
       { voice: "man" },
-      "Hello, this is Easy Wait List, calling you about an availability. Press one to confirm. Press two to cancel."
+      "Hello, this is Easy Wait List, calling you about an available co-vid vaccine appointment immediately." +
+        "Press one to confirm that you can show up in the next twenty minutes." +
+        "Press two to decline and ramin on the waitlist."
     );
 
     // If the user doesn't enter input, loop
@@ -50,10 +52,10 @@ exports.userVoiceResponseHandler = functions.https.onRequest((req, res) => {
           break;
         case "2":
           // TODO: Watch out for async not finishing before the call ends
-          dbListener.set("cancelled");
+          dbListener.set("declined");
           twiml.say(
             { voice: "man" },
-            "You have cancelled. We will remove your waitlist information."
+            "You have declined. We will remove your waitlist information."
           );
           twiml.hangup();
           break;
